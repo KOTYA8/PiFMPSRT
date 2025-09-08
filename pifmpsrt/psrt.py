@@ -5,11 +5,8 @@ RDS_CTL = "rds_ctl"   # FIFO, созданный PiFmRds
 
 ps_list = ["RADIOPI", "STATION", "HELLO", "TEST123", "MUSIC"]
 rt_list = [
-    "Добро пожаловать на FM через Raspberry Pi!",
-    "Сейчас играет тестовый трек.",
-    "RDS работает в реальном времени.",
-    "Переключение текста каждые 7 секунд.",
-    "Привет из Python!"
+    "RT1",
+    "RT2"
 ]
 
 ps_delay = 5
