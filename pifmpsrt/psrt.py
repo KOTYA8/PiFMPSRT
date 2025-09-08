@@ -23,7 +23,7 @@ def send_cmd(cmd: str):
     """Отправка команды в rds_ctl"""
     with lock:
         f.write(cmd + "\n")
-        f.flush()  # сразу сбрасываем буфер
+        f.flush()
     print(f"[SEND] {cmd}")
 
 def cycle_ps():
@@ -39,8 +39,7 @@ def cycle_rt():
             time.sleep(rt_delay)
 
 if __name__ == "__main__":
-    global f
-    f = open(RDS_CTL, "w")
+    f = open(RDS_CTL, "w")   # открываем FIFO один раз
 
     threading.Thread(target=cycle_ps, daemon=True).start()
     threading.Thread(target=cycle_rt, daemon=True).start()
