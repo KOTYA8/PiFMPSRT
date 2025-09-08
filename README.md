@@ -6,7 +6,7 @@ Management via rds_ctl.
 # Installation
 **1.** Choose a version of PiFmPSRT and drag to the PiFmRds Directory.  
 **2.** Create in the directory PiFmRds -> mkfifo rds_ctl  
-**3.** In one console we run -> sudo ./pi_fm_rds -ctl rds_ctl,  
+**3.** In one console we run -> sudo ./pi_fm_rds -ctl rds_ctl  
 and in another console we run -> python3 psrtv(ver).py  
 
 # Version
