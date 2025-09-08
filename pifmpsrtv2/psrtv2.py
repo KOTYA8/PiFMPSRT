@@ -1,23 +1,25 @@
 import time
 import threading
+import os
 
 RDS_CTL = "rds_ctl"   # FIFO, созданный PiFmRds
 
-ps_list = ["RADIOPI", "STATION", "HELLO", "TEST123", "MUSIC"]
-rt_list = [
-    "Добро пожаловать на FM через Raspberry Pi!",
-    "Сейчас играет тестовый трек.",
-    "RDS работает в реальном времени.",
-    "Переключение текста каждые 7 секунд.",
-    "Привет из Python!"
-]
+ps_file = "ps.txt"
+rt_file = "rt.txt"
 
 ps_delay = 5
 rt_delay = 7
 
-# общий файловый дескриптор
 f = None
 lock = threading.Lock()
+
+def load_list(filename):
+    """Читает список строк из файла"""
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r", encoding="utf-8") as fh:
+        lines = [line.strip() for line in fh if line.strip()]
+    return lines
 
 def send_cmd(cmd: str):
     """Отправка команды в rds_ctl"""
@@ -28,12 +30,20 @@ def send_cmd(cmd: str):
 
 def cycle_ps():
     while True:
+        ps_list = load_list(ps_file)
+        if not ps_list:
+            time.sleep(ps_delay)
+            continue
         for ps in ps_list:
             send_cmd(f"PS {ps}")
             time.sleep(ps_delay)
 
 def cycle_rt():
     while True:
+        rt_list = load_list(rt_file)
+        if not rt_list:
+            time.sleep(rt_delay)
+            continue
         for rt in rt_list:
             send_cmd(f"RT {rt}")
             time.sleep(rt_delay)
