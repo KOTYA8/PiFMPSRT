@@ -11,7 +11,7 @@ and in another console we run -> python3 psrtv(ver).py
 
 # Registers for V4
 Gaps and any other symbols are also taken into account, including |.  
-l||text -> |text___  
+r||text -> ___|text  
 
 **Standart mode:**  
 text - normal mode, starting on the left, switching for 5 seconds  
