@@ -1,6 +1,6 @@
 # PiFmPSRT
 Script for PiFmRds.  
-You can create the amount of PS and RT, and so that it changes through the seconds you specified.  
+You can create the amount of PS and RT, and so that it changes through the seconds that you indicated, as well as use the modes and change the position of the text.  
 Management via rds_ctl.  
 
 # Installation
