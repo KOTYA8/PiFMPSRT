@@ -13,8 +13,8 @@ and in another console we run -> python3 psrtv(ver).py
 Gaps and any other symbols are also taken into account, including |.  
 r||text -> ___|text  
 If you put the gaps, the text will move. It works both in PS and RT.  
- text -> _ text ___  
-  text -> __ text __  
+⠀text -> _ text ___  
+⠀⠀text -> __ text __  
 
 **Standart mode:**  
 text - normal mode, starting on the left, switching for 5 seconds  
