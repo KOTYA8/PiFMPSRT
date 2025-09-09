@@ -32,7 +32,7 @@ t4|hellotext - Transfer of text only 4 characters -> hell____ [or] otex____ [or]
 lt|hellotext - Transfer of text on the left -> hellotex [or] t_______  
 ct|text - Transfer of text on the centre -> hellotex [or] ___ t ____  
 rt|text - Transfer of text on the right -> hellotex [or] _______t  
-ct6|hellotext - Transfer of text in the centre of only 6 characters -> _hellot_ [or] __ ext ___  
+ct6|hellotext - Transfer of text in the centre of only 6 characters -> _ hellot _ [or] __ ext ___  
 
 # Version
 **V1** - To change only in Python File (psrtv1.py)  
