@@ -14,7 +14,7 @@ and in another console we run -> python3 psrtv(ver).py
 text - normal mode, starting on the left, switching for 5 seconds  
 text|2 - Switching in seconds  
 l|text - Indication of the position on the left -> text____  
-c|text - Indication of the position on the centre -> __text__  
+c|text - Indication of the position on the centre -> __ text __ 
 r|text - Indication of the position on the right -> ____text  
 
 **Scroll mode:**  
@@ -27,9 +27,9 @@ t|hellotext|5 - Transfer of text 5 seconds -> hellotex (5s) [or] t_______ (5s)
 t6|hellotext - Transfer of text only 6 characters -> hellot__ [or] ext_____  
 t4|hellotext - Transfer of text only 4 characters -> hell____ [or] otex____ [or] t_______  
 lt|hellotext - Transfer of text on the left -> hellotex [or] t_______  
-ct|text - Transfer of text on the centre -> hellotex [or] ___t____  
+ct|text - Transfer of text on the centre -> hellotex [or] ___ t ____  
 rt|text - Transfer of text on the right -> hellotex [or] _______t  
-ct6|hellotext - Transfer of text in the centre of only 6 characters -> _hellot_ [or] __ext___  
+ct6|hellotext - Transfer of text in the centre of only 6 characters -> _hellot_ [or] __ ext ___  
 
 # Version
 **V1** - To change only in Python File (psrtv1.py)  
