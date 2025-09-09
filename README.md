@@ -18,7 +18,7 @@ If you put the gaps, the text will move. It works both in PS and RT.
 
 **Standart mode:**  
 text - normal mode, starting on the left, switching for 5 seconds  
-text|2 - Switching in seconds  
+text|2 - Switching in 2 seconds  
 l|text - Indication of the position on the left -> text____  
 c|text - Indication of the position on the centre -> __ text __  
 r|text - Indication of the position on the right -> ____text  
