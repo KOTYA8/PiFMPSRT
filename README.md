@@ -14,7 +14,7 @@ and in another console we run -> python3 psrtv(ver).py
 text - normal mode, starting on the left, switching for 5 seconds  
 text|2 - Switching in seconds  
 l|text - Indication of the position on the left -> text____  
-c|text - Indication of the position on the centre -> __ text __ 
+c|text - Indication of the position on the centre -> __ text __  
 r|text - Indication of the position on the right -> ____text  
 
 **Scroll mode:**  
