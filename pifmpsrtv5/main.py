@@ -1,7 +1,7 @@
-from parser import parse_line
-from ps_modes import generate_ps_frames
-from transfers import generate_transfer_frames
-from rt_modes import generate_rt_frames
+from pifmpsrt.parser import parse_line
+from pifmpsrt.ps_modes import generate_ps_frames
+from pifmpsrt.transfers import generate_transfer_frames
+from pifmpsrt.rt_modes import generate_rt_frames
 
 def main():
     print("=== PS ===")
@@ -13,9 +13,11 @@ def main():
 
             mode, text, times = parse_line(line)
 
-            if mode.startswith("t"):  # переносы
+            if mode is None:  # обычный текст
+                frames = [text]
+            elif mode.startswith("t"):  # переносы
                 frames = generate_transfer_frames(mode, text)
-            else:  # обычные PS режимы
+            else:  # PS режимы
                 frames = generate_ps_frames(mode, text, times)
 
             print(f"\nMode={mode} Text='{text}' Times={times}")
@@ -30,7 +32,10 @@ def main():
                 continue
 
             mode, text, times = parse_line(line)
-            frames = generate_rt_frames(mode, text, times)
+            if mode is None:  # простой текст
+                frames = [text]
+            else:
+                frames = generate_rt_frames(mode, text, times)
 
             print(f"\nMode={mode} Text='{text}' Times={times}")
             for idx, fr in enumerate(frames):
