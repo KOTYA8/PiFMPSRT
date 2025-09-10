@@ -10,7 +10,8 @@ Management via rds_ctl.
 and in another console we run:  
 OLD: -> python3 psrtv(ver).py   
 NEW: -> python3 main.py  
-**4.** After the PiFmRds -> Change ps.txt and rt.txt directory. Without closing the script, you can change PS and RT by saving a text file  
+**4.** After the PiFmRds -> Change ps.txt and rt.txt directory. Without closing the script, you can change PS and RT by saving a text file.  
+NEW: After the PiFmRds -> pifmpsrt -> Change ps.txt and rt.txt directory.  
 
 # Registers for V4
 Gaps and any other symbols are also taken into account, including |.  
