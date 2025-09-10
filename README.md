@@ -7,7 +7,9 @@ Management via rds_ctl.
 **1.** Choose a version of PiFmPSRT and drag to the PiFmRds Directory.  
 **2.** Create in the directory PiFmRds -> mkfifo rds_ctl  
 **3.** In one console we run -> sudo ./pi_fm_rds -ctl rds_ctl  
-and in another console we run -> python3 psrtv(ver).py  
+and in another console we run  
+OLD: -> python3 psrtv(ver).py   
+NEW: -> python3 main.py  
 **4.** After the PiFmRds -> Change ps.txt and rt.txt directory. Without closing the script, you can change PS and RT by saving a text file  
 
 # Registers for V4
