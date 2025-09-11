@@ -4,13 +4,14 @@ You can create the amount of PS and RT, and so that it changes through the secon
 Management via rds_ctl.  
 
 # Installation
-**1.** Choose a version of PiFmPSRT and drag to the PiFmRds Directory.  
-**2.** Create in the directory PiFmRds -> mkfifo rds_ctl  
-**3.** In one console we run -> sudo ./pi_fm_rds -ctl rds_ctl  
+**1.** In the terminal we write -> git clone https://github.com/KOTYA8/PiFmPSRT/  
+**2.** Next, select the version a version of PiFmPSRT (psrtv(ver)) and drag to the PiFmRds Directory (psrt.py and pifmpsrt folder).  
+**3.** Create in the directory PiFmRds -> mkfifo rds_ctl  
+**4.** In one console we run -> sudo ./pi_fm_rds -ctl rds_ctl  
 and in another console we run:  
 OLD: -> python3 psrtv(ver).py   
 NEW: -> python3 psrt.py  
-**4.** After the PiFmRds -> Change ps.txt and rt.txt directory. Without closing the script, you can change PS and RT by saving a text file.  
+**5.** After the PiFmRds -> Change ps.txt and rt.txt directory. Without closing the script, you can change PS and RT by saving a text file.  
 NEW: After the PiFmRds -> pifmpsrt -> Change ps.txt and rt.txt directory.  
 
 # Registers for V4,5
