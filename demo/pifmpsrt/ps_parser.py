@@ -6,7 +6,8 @@ def parse_ps_line(raw_line: str):
     if not line or line.lstrip().startswith("#"):
         return None
 
-    delay_list = [5]  # по умолчанию 5 секунд
+    # Задержки (можно несколько через '/')
+    delay_list = [5]
     core = line
     pos_last = line.rfind("|")
     if pos_last != -1:
@@ -24,6 +25,7 @@ def parse_ps_line(raw_line: str):
             except ValueError:
                 core = line
 
+    # Разбор модификаторов (режим, выравнивание, transfer длина)
     mode_token = ""
     text = core
     first_bar = core.find("|")
@@ -50,7 +52,11 @@ def parse_ps_line(raw_line: str):
                     n = 8
                 else:
                     try:
-                        n = int(rest[1:])
+                        n_val = int(rest[1:])
+                        if 1 <= n_val <= 8:
+                            n = n_val
+                        else:
+                            n = 8
                     except ValueError:
                         n = 8
         elif mt.startswith("t"):
@@ -59,7 +65,11 @@ def parse_ps_line(raw_line: str):
                 n = 8
             else:
                 try:
-                    n = int(mt[1:])
+                    n_val = int(mt[1:])
+                    if 1 <= n_val <= 8:
+                        n = n_val
+                    else:
+                        n = 8
                 except ValueError:
                     n = 8
             align = "l"
@@ -72,6 +82,7 @@ def parse_ps_line(raw_line: str):
             text = core
 
     return {"kind": kind, "align": align, "n": n, "text": text, "delays": delay_list}
+
 
 def ps_frames(entry):
     kind = entry["kind"]
@@ -101,6 +112,7 @@ def ps_frames(entry):
             d = delays[idx % delay_count]
             idx += 1
             yield align_ps(seg, align), d
+
 
 def load_ps_lines(filename):
     if not os.path.exists(filename):
