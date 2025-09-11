@@ -14,7 +14,7 @@ NEW: -> python3 main.py
 NEW: After the PiFmRds -> pifmpsrt -> Change ps.txt and rt.txt directory.  
 
 # Registers for V4,5
-**PS Mode**  
+# **PS Mode**  
 Gaps and any other symbols are also taken into account, including |.  
 r||text -> ___|text  
 If you put the gaps, the text will move. It works both in PS and RT.  
@@ -49,7 +49,7 @@ ct|text - Transfer of text on the centre -> hellotex [or] ___ t ____
 rt|text - Transfer of text on the right -> hellotex [or] _______t  
 ct6|hellotext - Transfer of text in the centre of only 6 characters -> _ hellot _ [or] __ ext ___
 
-**RT Mode**  
+# **RT Mode**  
 l|text - Indication of the position on the left -> text____  
 c|text - Indication of the position on the centre -> __ text __  
 r|text - Indication of the position on the right -> ____text 
