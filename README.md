@@ -30,7 +30,7 @@ r|text - Indication of the position on the right -> ____text
 
 **Scroll mode:**  
 s|hellotext - Scroll of letters -> hellotex [or] ellotext  
-s|hellotext|5 - Scroll of letters 5 seconds -> hellotex (5s) [or] ellotext (5s) 
+s|hellotext|5 - Scroll of letters 5 seconds -> hellotex (5s) [or] ellotext (5s)  
 s|hellotext|5/2 - Scroll of letters 5/2 seconds -> hellotex (5s) [or] ellotext (2s)  
 
 **Transfer mode:**  
