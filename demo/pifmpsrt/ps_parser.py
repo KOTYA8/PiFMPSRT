@@ -43,10 +43,9 @@ def parse_ps_line(raw_line: str):
     elif mt == "ls":
         kind = "scroll_lr"
         align = "l"
-    elif mt == "ts":
-        kind = "ts"  # новый режим наложения сверху
+    elif mt == "ss":
+        kind = "scroll_cycle"
         align = "l"
-        n = 8
     else:
         if mt.startswith(("l", "c", "r")):
             align = mt[0]
@@ -134,28 +133,20 @@ def ps_frames(entry):
                 idx += 1
                 yield base, d
 
-    elif kind == "ts":  # новый режим наложения сверху (top-slide)
-        text_width = 8
-        full_text = list(text)
-        ps = full_text[:text_width] + ["_"] * max(0, text_width - len(full_text[:text_width]))
-        rest = full_text[text_width:]
-        idx_cycle = 0
-
-        while True:
-            yield ''.join(ps), delays[idx_cycle % delay_count]
-            idx_cycle += 1
-
-            if rest:
-                for i in range(min(len(rest), text_width)):
-                    ps[i] = rest[i]
-                rest = rest[text_width:]
-            else:
-                # текст закончился, оставляем первый символ, остальные "_"
-                first_char = ps[0]
-                ps = [first_char] + ["_"] * (text_width - 1)
-                # начинаем новый цикл с начала текста
-                ps = full_text[:text_width] + ["_"] * max(0, text_width - len(full_text[:text_width]))
-                rest = full_text[text_width:]
+    elif kind == "scroll_cycle":  # ss-анимация (циклический скролл)
+        t = text
+        if len(t) <= 8:
+            yield align_ps(t, "l"), delays[0]
+        else:
+            idx = 0
+            length = len(t)
+            while True:
+                window = ""
+                for j in range(8):
+                    window += t[(idx + j) % length]
+                d = delays[idx % delay_count]
+                idx += 1
+                yield window, d
 
 
 def load_ps_lines(filename):
