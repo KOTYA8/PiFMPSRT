@@ -134,22 +134,32 @@ def ps_frames(entry):
                 idx += 1
                 yield base, d
 
-    elif kind == "ts":  # новый режим наложения сверху
-        ps = list(text[:8].ljust(8))
-        rest = list(text[8:])
-        while True:
-            yield ''.join(ps), delays[idx % delay_count]
-            idx += 1
-            if rest:
-                for i in range(min(len(rest), 8)):
-                    ps[i] = rest[i]
-                rest = rest[8:]
-            else:
-                # текст закончился, оставляем первый символ, остальные заполняем пробелами
-                first_char = ps[0]
-                ps = [first_char] + ["_"] * 7
-                # затем начинаем цикл с начала текста
-                rest = list(text)
+elif kind == "ts":  # режим наложения сверху (top-slide)
+    text_width = 8
+    full_text = list(text)  # весь текст
+    idx = 0  # индекс текущей буквы
+    ps = full_text[:text_width]  # стартовые 8 символов
+    ps = ps + ["_"] * (text_width - len(ps))  # на случай, если текст <8
+
+    # очередь оставшихся символов после первых 8
+    rest = full_text[text_width:]  
+
+    while True:
+        yield ''.join(ps), delays[idx % delay_count]
+        idx += 1
+
+        if rest:
+            # накладываем по буквам сверху, слева направо
+            for i in range(min(len(rest), text_width)):
+                ps[i] = rest[i]
+            rest = rest[text_width:]
+        else:
+            # текст закончился, оставляем первый символ, остальные '_'
+            first_char = ps[0]
+            ps = [first_char] + ["_"] * (text_width - 1)
+            # начинаем новый цикл с начала текста
+            ps = full_text[:text_width] + ["_"] * max(0, text_width - len(full_text[:text_width]))
+            rest = full_text[text_width:]
 
 
 def load_ps_lines(filename):
