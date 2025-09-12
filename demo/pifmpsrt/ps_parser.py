@@ -43,9 +43,10 @@ def parse_ps_line(raw_line: str):
     elif mt == "ls":
         kind = "scroll_lr"
         align = "l"
-    elif mt == "cs":
-        kind = "scroll_center"
-        align = "c"
+    elif mt == "ts":
+        kind = "ts"  # новый режим наложения сверху
+        align = "l"
+        n = 8
     else:
         if mt.startswith(("l", "c", "r")):
             align = mt[0]
@@ -133,52 +134,22 @@ def ps_frames(entry):
                 idx += 1
                 yield base, d
 
-    elif kind == "scroll_center":  # cs-анимация
-        text_len = len(text)
-        if text_len <= 8:
-            yield align_ps(text, "l"), delays[0]
-        else:
-            window = list(text[:8])
-            idx_text = 8
-            delay_idx = 0
-
-            while True:
-                yield "".join(window), delays[delay_idx % delay_count]
-                delay_idx += 1
-
-                if idx_text < text_len:
-                    step = idx_text - 8
-                    pos = None
-                    if step == 0:
-                        pos = 3
-                    elif step == 1:
-                        pos = 4
-                    elif step == 2:
-                        window[2], window[3] = window[3], window[4]
-                        pos = 4
-                    elif step == 3:
-                        pos = 5
-                    elif step == 4:
-                        window[2:6] = window[3:7]
-                        pos = 5
-                    elif step == 5:
-                        pos = 6
-                    elif step == 6:
-                        window[1:7] = window[2:8]
-                        pos = 6
-                    elif step == 7:
-                        pos = 7
-                    else:
-                        idx_text = 0
-                        continue
-
-                    window[pos] = text[idx_text]
-                    idx_text += 1
-                else:
-                    # текст закончился, сдвигаем окно и вставляем пробел
-                    window = window[1:] + [" "]
-                    if all(c == " " for c in window):
-                        idx_text = 0
+    elif kind == "ts":  # новый режим наложения сверху
+        ps = list(text[:8].ljust(8))
+        rest = list(text[8:])
+        while True:
+            yield ''.join(ps), delays[idx % delay_count]
+            idx += 1
+            if rest:
+                for i in range(min(len(rest), 8)):
+                    ps[i] = rest[i]
+                rest = rest[8:]
+            else:
+                # текст закончился, оставляем первый символ, остальные заполняем пробелами
+                first_char = ps[0]
+                ps = [first_char] + ["_"] * 7
+                # затем начинаем цикл с начала текста
+                rest = list(text)
 
 
 def load_ps_lines(filename):
