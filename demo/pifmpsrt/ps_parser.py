@@ -1,79 +1,87 @@
-import re
-from .ps_scroll import scroll_ls, scroll_rs, scroll_ss, scroll_cs, scroll_cts
+import os
+from .utils import align_ps
 
-def parse_ps_line(line):
-    """
-    Разбор строки ps.txt
-    """
-    line = line.strip()
-    if not line or line.startswith("#"):
+def parse_ps_line(raw_line: str):
+    line = raw_line.rstrip("\n")
+    if not line or line.lstrip().startswith("#"):
         return None
 
-    parts = line.split("|")
-    if len(parts) < 2:
-        return None
+    # Разбор задержек (можно несколько через '/')
+    delay_list = [5]
+    core = line
+    pos_last = line.rfind("|")
+    if pos_last != -1:
+        tail = line[pos_last + 1:]
+        if "/" in tail:
+            try:
+                delay_list = [int(x) for x in tail.strip().split("/") if x]
+                core = line[:pos_last]
+            except ValueError:
+                core = line
+        else:
+            try:
+                delay_list = [int(tail.strip())]
+                core = line[:pos_last]
+            except ValueError:
+                core = line
 
-    mt = parts[0]  # режим (например t4, s, ls, rs, cs, cts)
-    text = parts[1]
-    delays = [int(x) for x in parts[2].split("/")] if len(parts) > 2 else [5]
+    # Разбор модификаторов (режим, выравнивание, transfer длина)
+    mode_token = ""
+    text = core
+    first_bar = core.find("|")
+    if first_bar != -1:
+        mode_token = core[:first_bar]
+        text = core[first_bar + 1:]
 
-    align = "l"
     kind = "normal"
+    align = "l"
     n = 8
+    mt = mode_token
 
-    if mt.startswith(("l", "c", "r")):
-        align = mt[0]
-        rest = mt[1:]
-        if rest == "" or rest is None:
-            kind = "normal"
-        elif rest.startswith("t"):
+    if mt == "s":
+        kind = "scroll"
+    elif mt == "ls":
+        kind = "scroll_lr"
+        align = "l"
+    else:
+        if mt.startswith(("l", "c", "r")):
+            align = mt[0]
+            rest = mt[1:]
+            if rest == "" or rest is None:
+                kind = "normal"
+            elif rest.startswith("t"):
+                kind = "transfer"
+                if len(rest) == 1:
+                    n = 8
+                else:
+                    try:
+                        n_val = int(rest[1:])
+                        if 1 <= n_val <= 8:
+                            n = n_val
+                        else:
+                            n = 8
+                    except ValueError:
+                        n = 8
+        elif mt.startswith("t"):
             kind = "transfer"
-            if len(rest) == 1:
+            if len(mt) == 1:
                 n = 8
             else:
                 try:
-                    n_val = int(rest[1:])
+                    n_val = int(mt[1:])
                     if 1 <= n_val <= 8:
                         n = n_val
+                    else:
+                        n = 8
                 except ValueError:
                     n = 8
-    elif mt.startswith("t"):
-        kind = "transfer"
-        if len(mt) == 1:
-            n = 8
+            align = "l"
         else:
-            try:
-                n_val = int(mt[1:])
-                if 1 <= n_val <= 8:
-                    n = n_val
-            except ValueError:
-                n = 8
-    elif mt.startswith("s"):
-        kind = "scroll"
-    elif mt in ["ls", "rs", "ss", "cs", "cts"]:
-        kind = mt
-    else:
-        kind = "normal"
+            kind = "normal"
+            align = "l"
+            text = core
 
-    return {
-        "kind": kind,
-        "align": align,
-        "n": n,
-        "text": text,
-        "delays": delays,
-    }
-
-
-def align_ps(text, align):
-    if len(text) > 8:
-        text = text[:8]
-    if align == "l":
-        return text.ljust(8)
-    elif align == "c":
-        return text.center(8)
-    elif align == "r":
-        return text.rjust(8)
-    return text.ljust(8)
+    return {"kind": kind, "align": align, "n": n, "text": text, "delays": delay_list}
 
 
 def ps_frames(entry):
@@ -90,37 +98,41 @@ def ps_frames(entry):
         yield align_ps(text, align), delays[0]
 
     elif kind == "scroll":
-        pad = text + " " * 7
-        while True:
-            for i in range(len(pad) - 7):
-                yield pad[i:i+8], delays[idx % delay_count]
+        if len(text) <= 8:
+            yield align_ps(text, "l"), delays[0]
+        else:
+            for i in range(0, len(text) - 7):
+                d = delays[idx % delay_count]
                 idx += 1
+                yield text[i:i+8], d
 
     elif kind == "transfer":
-        chunks = []
+        if n <= 0:
+            n = 8
         for i in range(0, len(text), n):
-            chunk = text[i:i+n]
-            chunks.append(chunk.ljust(8))
-        if not chunks:
-            chunks = [" " * 8]
-        while True:
-            for chunk in chunks:
-                yield chunk, delays[idx % delay_count]
-                idx += 1
-
-    elif kind in ["ls", "rs", "ss", "cs", "cts"]:
-        if kind == "ls":
-            gen = scroll_ls(text)
-        elif kind == "rs":
-            gen = scroll_rs(text)
-        elif kind == "ss":
-            gen = scroll_ss(text)
-        elif kind == "cs":
-            gen = scroll_cs(text)
-        elif kind == "cts":
-            gen = scroll_cts(text)
-
-        while True:
-            frame = next(gen)
-            yield frame.ljust(8), delays[idx % delay_count]
+            seg = text[i:i+n]
+            d = delays[idx % delay_count]
             idx += 1
+            yield align_ps(seg, align), d
+
+    elif kind == "scroll_lr":  # ls-анимация
+        t = text
+        if len(t) <= 8:
+            yield align_ps(t, "l"), delays[0]
+        else:
+            base = t[:8]
+            yield base, delays[0]
+            idx = 1
+            for k in range(len(t)-1, -1, -1):
+                sym = t[k]
+                base = sym + base[:-1]
+                d = delays[idx % delay_count]
+                idx += 1
+                yield base, d
+
+
+def load_ps_lines(filename):
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r", encoding="utf-8") as fh:
+        return [ln.rstrip("\n") for ln in fh]
