@@ -134,31 +134,51 @@ def ps_frames(entry):
                 yield base, d
 
     elif kind == "scroll_center":  # cs-анимация
-        t = text
-        if not t:
-            yield " " * 8, delays[0]
-            return
+        text_len = len(text)
+        if text_len <= 8:
+            yield align_ps(text, "l"), delays[0]
+        else:
+            window = list(text[:8])
+            idx_text = 8
+            delay_idx = 0
 
-        buf = [" "] * 8
-        j = 0
-        while True:
-            if j < len(t):
-                if j < 2:
-                    buf[3 + j] = t[j]  # сначала 9-й символ в 4-ю, потом 10-й в 5-ю
+            while True:
+                yield "".join(window), delays[delay_idx % delay_count]
+                delay_idx += 1
+
+                if idx_text < text_len:
+                    step = idx_text - 8
+                    pos = None
+                    if step == 0:
+                        pos = 3
+                    elif step == 1:
+                        pos = 4
+                    elif step == 2:
+                        window[2], window[3] = window[3], window[4]
+                        pos = 4
+                    elif step == 3:
+                        pos = 5
+                    elif step == 4:
+                        window[2:6] = window[3:7]
+                        pos = 5
+                    elif step == 5:
+                        pos = 6
+                    elif step == 6:
+                        window[1:7] = window[2:8]
+                        pos = 6
+                    elif step == 7:
+                        pos = 7
+                    else:
+                        idx_text = 0
+                        continue
+
+                    window[pos] = text[idx_text]
+                    idx_text += 1
                 else:
-                    buf = buf[1:] + [" "]  # сдвиг влево
-                    buf[7] = t[j]
-            else:
-                buf = buf[1:] + [" "]  # добиваем пробелами
-
-            frame = "".join(buf)
-            d = delays[idx % delay_count]
-            idx += 1
-            yield frame, d
-
-            j += 1
-            if j > len(t) + 8:  # ограничим цикл (иначе будет бесконечно)
-                break
+                    # текст закончился, сдвигаем окно и вставляем пробел
+                    window = window[1:] + [" "]
+                    if all(c == " " for c in window):
+                        idx_text = 0
 
 
 def load_ps_lines(filename):
