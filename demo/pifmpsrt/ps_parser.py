@@ -1,93 +1,168 @@
-# ps_parser.py
-# Парсер режимов для RDS PS
+import os
+from .utils import align_ps
 
-def generate_ps_frames(mode: str, text: str):
-    """
-    Генерирует список кадров PS для разных режимов:
-    ps| - статичный текст (8 символов)
-    ts| - бегущая строка
-    t1-t7| - тестовые варианты
-    cs| - центрированный скролл
-    """
+def parse_ps_line(raw_line: str):
+    line = raw_line.rstrip("\n")
+    if not line or line.lstrip().startswith("#"):
+        return None
 
-    frames = []
+    # Разбор задержек (можно несколько через '/')
+    delay_list = [5]
+    core = line
+    pos_last = line.rfind("|")
+    if pos_last != -1:
+        tail = line[pos_last + 1:]
+        if "/" in tail:
+            try:
+                delay_list = [int(x) for x in tail.strip().split("/") if x]
+                core = line[:pos_last]
+            except ValueError:
+                core = line
+        else:
+            try:
+                delay_list = [int(tail.strip())]
+                core = line[:pos_last]
+            except ValueError:
+                core = line
 
-    # Унифицированная подготовка текста
-    text = str(text)
-    if mode == "ps":
-        # Статичный PS (ровно 8 символов)
-        ps = text.ljust(8)[:8]
-        frames.append(ps)
+    # Разбор модификаторов (режим, выравнивание, transfer длина)
+    mode_token = ""
+    text = core
+    first_bar = core.find("|")
+    if first_bar != -1:
+        mode_token = core[:first_bar]
+        text = core[first_bar + 1:]
 
-    elif mode == "ts":
-        # Бегущая строка
-        buf = text + "        "  # добавляем пробелы
-        for i in range(len(buf) - 7):
-            frames.append(buf[i:i+8])
+    kind = "normal"
+    align = "l"
+    n = 8
+    mt = mode_token
 
-    elif mode.startswith("t") and len(mode) == 2 and mode[1].isdigit():
-        # Тестовые режимы t1…t7
-        num = int(mode[1])
-        ps = (text + " " * 8)[:8]
-        for i in range(num):
-            shifted = ps[i:] + ps[:i]
-            frames.append(shifted)
-
-    elif mode == "cs":
-        # Центрированный скролл
-        buf = text + " " * 8  # запас пробелов для окончания
-        window = list(buf[:8])  # стартовое окно
-
-        frames.append("".join(window))  # первая рамка
-
-        idx = 8  # указывает на следующий символ из текста
-        step = 0
-        while idx < len(buf):
-            step += 1
-            if step == 1:
-                # заменяем 4-й символ
-                window[3] = buf[idx]
-            elif step == 2:
-                # заменяем 5-й символ
-                window[4] = buf[idx]
-            elif step == 3:
-                # сдвиг 3–4 символов влево + вставка
-                window[2:5] = window[3:6]
-                window[4] = buf[idx]
-            elif step == 4:
-                # вставка на 6-ю позицию
-                window[5] = buf[idx]
-            elif step == 5:
-                # сдвиг 3–6 символов влево + вставка
-                window[2:6] = window[3:7]
-                window[5] = buf[idx]
-            elif step == 6:
-                # вставка на 7-ю позицию
-                window[6] = buf[idx]
-            elif step == 7:
-                # сдвиг 2–7 символов влево + вставка
-                window[1:7] = window[2:8]
-                window[6] = buf[idx]
-                step = 0  # сброс цикла
-            else:
-                step = 0
-                continue
-
-            frames.append("".join(window))
-            idx += 1
-
-        # Дополняем последнюю рамку пробелами
-        frames.append("".join(window).ljust(8))
-
+    if mt == "s":
+        kind = "scroll"
+    elif mt == "ls":
+        kind = "scroll_lr"
+        align = "l"
+    elif mt == "cs":
+        kind = "scroll_center"
+        align = "c"
     else:
-        raise ValueError(f"Неизвестный режим: {mode}")
+        if mt.startswith(("l", "c", "r")):
+            align = mt[0]
+            rest = mt[1:]
+            if rest == "" or rest is None:
+                kind = "normal"
+            elif rest.startswith("t"):
+                kind = "transfer"
+                if len(rest) == 1:
+                    n = 8
+                else:
+                    try:
+                        n_val = int(rest[1:])
+                        if 1 <= n_val <= 8:
+                            n = n_val
+                        else:
+                            n = 8
+                    except ValueError:
+                        n = 8
+        elif mt.startswith("t"):
+            kind = "transfer"
+            if len(mt) == 1:
+                n = 8
+            else:
+                try:
+                    n_val = int(mt[1:])
+                    if 1 <= n_val <= 8:
+                        n = n_val
+                    else:
+                        n = 8
+                except ValueError:
+                    n = 8
+            align = "l"
+        else:
+            kind = "normal"
+            align = "l"
+            text = core
 
-    return frames
+    return {"kind": kind, "align": align, "n": n, "text": text, "delays": delay_list}
 
 
-if __name__ == "__main__":
-    # Примеры проверки
-    print("PS:", generate_ps_frames("ps", "HELLO123"))
-    print("TS:", generate_ps_frames("ts", "HELLO123"))
-    print("T3:", generate_ps_frames("t3", "HELLO123"))
-    print("CS:", generate_ps_frames("cs", "thisistexthello"))
+def ps_frames(entry):
+    kind = entry["kind"]
+    align = entry["align"]
+    n = entry["n"]
+    text = entry["text"]
+    delays = entry["delays"]
+
+    delay_count = len(delays)
+    idx = 0
+
+    if kind == "normal":
+        yield align_ps(text, align), delays[0]
+
+    elif kind == "scroll":
+        if len(text) <= 8:
+            yield align_ps(text, "l"), delays[0]
+        else:
+            for i in range(0, len(text) - 7):
+                d = delays[idx % delay_count]
+                idx += 1
+                yield text[i:i+8], d
+
+    elif kind == "transfer":
+        if n <= 0:
+            n = 8
+        for i in range(0, len(text), n):
+            seg = text[i:i+n]
+            d = delays[idx % delay_count]
+            idx += 1
+            yield align_ps(seg, align), d
+
+    elif kind == "scroll_lr":  # ls-анимация
+        t = text
+        if len(t) <= 8:
+            yield align_ps(t, "l"), delays[0]
+        else:
+            base = t[:8]
+            yield base, delays[0]
+            idx = 1
+            for k in range(len(t)-1, -1, -1):
+                sym = t[k]
+                base = sym + base[:-1]
+                d = delays[idx % delay_count]
+                idx += 1
+                yield base, d
+
+    elif kind == "scroll_center":  # cs-анимация
+        t = text
+        if not t:
+            yield " " * 8, delays[0]
+            return
+
+        buf = [" "] * 8
+        j = 0
+        while True:
+            if j < len(t):
+                if j < 2:
+                    buf[3 + j] = t[j]  # сначала 9-й символ в 4-ю, потом 10-й в 5-ю
+                else:
+                    buf = buf[1:] + [" "]  # сдвиг влево
+                    buf[7] = t[j]
+            else:
+                buf = buf[1:] + [" "]  # добиваем пробелами
+
+            frame = "".join(buf)
+            d = delays[idx % delay_count]
+            idx += 1
+            yield frame, d
+
+            j += 1
+            if j > len(t) + 8:  # ограничим цикл (иначе будет бесконечно)
+                break
+
+
+def load_ps_lines(filename):
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r", encoding="utf-8") as fh:
+        return [ln.rstrip("\n") for ln in fh]
