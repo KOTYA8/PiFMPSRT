@@ -1,6 +1,6 @@
 import re
 from itertools import cycle
-from file_watcher import FileWatcher
+from .file_watcher import FileWatcher
 
 file_watcher = FileWatcher("file.txt")
 
