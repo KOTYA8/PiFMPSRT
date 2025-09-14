@@ -1,135 +1,99 @@
-import re
-from itertools import cycle
+# pifmpsrt/ps_parser.py
+
+from .ps_scroll import scroll_ps
+from .ps_line_split import line_split_ps
 from .file_watcher import FileWatcher
 
-file_watcher = FileWatcher("file.txt")
+# Словарь с последними значениями файлов (для fb/fe/cf и т.д.)
+file_watchers = {
+    "file.txt": FileWatcher("file.txt"),
+    "ps.txt": FileWatcher("ps.txt"),
+    "rt.txt": FileWatcher("rt.txt"),
+}
 
-def align_ps(text, align="l"):
-    if len(text) >= 8:
-        return text[:8]
-    pad = 8 - len(text)
-    if align == "c":
-        left = pad // 2
-        right = pad - left
-        return " " * left + text + " " * right
-    elif align == "r":
-        return " " * pad + text
-    else:
-        return text + " " * pad
+def handle_file_module(parts):
+    """
+    Обработка модулей, связанных с файлами (f|, fb|, fe|, cf|, rfe| и т.д.)
+    """
+    cmd = parts[0]  # например "f", "fb", "fe", "cf", "rfe"
 
-def parse_ps_line(line):
+    # Основной текст из файла
+    file_text = file_watchers["file.txt"].get_text()
+
+    # fb| → текст добавляется в начале
+    if cmd.startswith("fb"):
+        prefix = parts[1] if len(parts) > 1 else ""
+        return prefix + file_text
+
+    # fe| → текст добавляется в конце
+    if cmd.startswith("fe"):
+        suffix = parts[1] if len(parts) > 1 else ""
+        return file_text + suffix
+
+    # fb|...|e|... (и середина, и конец)
+    if cmd.startswith("fb") and "e" in parts:
+        prefix = parts[1] if len(parts) > 1 else ""
+        suffix = parts[3] if len(parts) > 3 else ""
+        return prefix + file_text + suffix
+
+    # cf| → выравнивание по центру
+    if cmd.startswith("cf"):
+        return file_text.center(8)
+
+    # rfe| → справа + суффикс
+    if cmd.startswith("rfe"):
+        suffix = parts[1] if len(parts) > 1 else ""
+        return (file_text + suffix).rjust(8)
+
+    # f| → просто содержимое файла
+    if cmd.startswith("f"):
+        return file_text
+
+    # По умолчанию вернём как есть
+    return file_text
+
+
+def parse_ps_line(line: str):
+    """
+    Основной парсер строк PS
+    """
     line = line.strip()
-    if not line or line.startswith("#"):
-        return None
 
-    m = re.match(r"([lcr]?)([a-z0-9]+)?f?b?(?:\|([^|]*))?(?:e\|([^|]*))?\|(.+)?", line)
-    if not m:
-        return None
+    # Если строка пустая
+    if not line:
+        return ""
 
-    align, mode, prefix, suffix, rest = m.groups()
-    align = align or "l"
-    mode = mode or "normal"
+    # Если строка не содержит командных символов | → обычный текст
+    if "|" not in line and not line.startswith(("s", "lt", "tf", "sf", "f", "cf", "fb", "fe", "rfe", "lsf")):
+        return line
 
-    # ищем секунды и expire
-    sec_match = re.search(r"\|([\d/]+)(?:\\(\d+))?$", line)
-    delays, expire_time = [5], None
-    if sec_match:
-        sec_str, expire_str = sec_match.groups()
-        if sec_str:
-            delays = [int(x) for x in sec_str.split("/")]
-        if expire_str:
-            expire_time = int(expire_str)
+    # Если строка начинается с | → это обычный текст
+    if line.startswith("|"):
+        return line[1:]
 
-    # проверка на file
-    if "f" in mode:
-        kind = "file"
-    elif mode == "s":
-        kind = "scroll"
-    elif mode == "ss":
-        kind = "scroll_cycle"
-    elif mode == "t":
-        kind = "transfer"
-    elif mode.startswith("t") and mode[1:].isdigit():
-        kind = "transfer_cut"
-    elif mode == "ls":
-        kind = "scroll_lr"
-    else:
-        kind = "normal"
+    parts = line.split("|")
 
-    return {
-        "kind": kind,
-        "align": align,
-        "delays": delays,
-        "expire_time": expire_time,
-        "prefix": prefix or "",
-        "suffix": suffix or "",
-        "text": rest or "",
-    }
+    # SCROLL (s|TEXT|SPEED)
+    if parts[0] == "s":
+        text = parts[1] if len(parts) > 1 else ""
+        try:
+            speed = int(parts[2]) if len(parts) > 2 else 3
+        except ValueError:
+            speed = 3
+        return scroll_ps(text, speed)
 
-def ps_frames(entry):
-    kind = entry["kind"]
-    text = entry["text"]
-    delays = entry["delays"]
-    delay_count = len(delays)
-    align = entry["align"]
-    prefix = entry["prefix"]
-    suffix = entry["suffix"]
-    expire_time = entry["expire_time"]
+    # LINE SPLIT (ltN|TEXT)
+    if parts[0].startswith("lt"):
+        try:
+            width = int(parts[0][2:])
+        except ValueError:
+            width = 8
+        text = parts[1] if len(parts) > 1 else ""
+        return line_split_ps(text, width)
 
-    if kind == "file":
-        file_text = file_watcher.read()
-        if not file_text or (expire_time and not file_watcher.changed_recently(expire_time)):
-            return
-        final_text = prefix + file_text + suffix
-        yield align_ps(final_text, align), delays[0]
+    # FILE MODULES (f|, fb|, fe|, cf|, rfe|, lsf| и т.д.)
+    if parts[0].startswith(("f", "cf", "fb", "fe", "rfe", "sf", "tf", "lsf", "lt")):
+        return handle_file_module(parts)
 
-    elif kind == "normal":
-        yield align_ps(text, align), delays[0]
-
-    elif kind == "scroll":
-        if len(text) <= 8:
-            yield align_ps(text, align), delays[0]
-        else:
-            for i in range(len(text) - 7):
-                yield text[i:i+8], delays[i % delay_count]
-
-    elif kind == "scroll_cycle":
-        idx = 0
-        length = len(text)
-        while True:
-            window = "".join(text[(idx + j) % length] for j in range(8))
-            yield window, delays[idx % delay_count]
-            idx += 1
-
-    elif kind == "transfer":
-        if len(text) <= 8:
-            yield align_ps(text, align), delays[0]
-        else:
-            step = 8
-            parts = [text[i:i+step] for i in range(0, len(text), step)]
-            for i, p in enumerate(parts):
-                yield align_ps(p, align), delays[i % delay_count]
-
-    elif kind == "transfer_cut":
-        cut = int(entry["kind"][1:])
-        if len(text) <= 8:
-            yield align_ps(text, align), delays[0]
-        else:
-            step = 8 - (cut // 2)
-            parts = [text[i:i+step] for i in range(0, len(text), step)]
-            for i, p in enumerate(parts):
-                yield align_ps(p, align), delays[len(p) % delay_count]
-
-    elif kind == "scroll_lr":
-        if len(text) <= 8:
-            yield align_ps(text, "l"), delays[0]
-        else:
-            base = text[:8]
-            yield base, delays[0]
-            idx = 1
-            for k in range(len(text) - 1, -1, -1):
-                sym = text[k]
-                base = sym + base[:-1]
-                d = delays[idx % delay_count]
-                idx += 1
-                yield base, d
+    # Всё остальное → просто текст
+    return line
