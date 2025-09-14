@@ -1,99 +1,156 @@
-# pifmpsrt/ps_parser.py
+import os
+from .utils import align_ps
 
-from .ps_scroll import scroll_ps
-from .ps_line_split import line_split_ps
-from .file_watcher import FileWatcher
+def parse_ps_line(raw_line: str):
+    line = raw_line.rstrip("\n")
+    if not line or line.lstrip().startswith("#"):
+        return None
 
-# Словарь с последними значениями файлов (для fb/fe/cf и т.д.)
-file_watchers = {
-    "file.txt": FileWatcher("file.txt"),
-    "ps.txt": FileWatcher("ps.txt"),
-    "rt.txt": FileWatcher("rt.txt"),
-}
+    # Разбор задержек (можно несколько через '/')
+    delay_list = [5]
+    core = line
+    pos_last = line.rfind("|")
+    if pos_last != -1:
+        tail = line[pos_last + 1:]
+        if "/" in tail:
+            try:
+                delay_list = [int(x) for x in tail.strip().split("/") if x]
+                core = line[:pos_last]
+            except ValueError:
+                core = line
+        else:
+            try:
+                delay_list = [int(tail.strip())]
+                core = line[:pos_last]
+            except ValueError:
+                core = line
 
-def handle_file_module(parts):
-    """
-    Обработка модулей, связанных с файлами (f|, fb|, fe|, cf|, rfe| и т.д.)
-    """
-    cmd = parts[0]  # например "f", "fb", "fe", "cf", "rfe"
+    # Разбор модификаторов (режим, выравнивание, transfer длина)
+    mode_token = ""
+    text = core
+    first_bar = core.find("|")
+    if first_bar != -1:
+        mode_token = core[:first_bar]
+        text = core[first_bar + 1:]
 
-    # Основной текст из файла
-    file_text = file_watchers["file.txt"].get_text()
+    kind = "normal"
+    align = "l"
+    n = 8
+    mt = mode_token
 
-    # fb| → текст добавляется в начале
-    if cmd.startswith("fb"):
-        prefix = parts[1] if len(parts) > 1 else ""
-        return prefix + file_text
+    if mt == "s":
+        kind = "scroll"
+    elif mt == "ls":
+        kind = "scroll_lr"
+        align = "l"
+    elif mt == "ss":
+        kind = "scroll_cycle"
+        align = "l"
+    else:
+        if mt.startswith(("l", "c", "r")):
+            align = mt[0]
+            rest = mt[1:]
+            if rest == "" or rest is None:
+                kind = "normal"
+            elif rest.startswith("t"):
+                kind = "transfer"
+                if len(rest) == 1:
+                    n = 8
+                else:
+                    try:
+                        n_val = int(rest[1:])
+                        if 1 <= n_val <= 8:
+                            n = n_val
+                        else:
+                            n = 8
+                    except ValueError:
+                        n = 8
+        elif mt.startswith("t"):
+            kind = "transfer"
+            if len(mt) == 1:
+                n = 8
+            else:
+                try:
+                    n_val = int(mt[1:])
+                    if 1 <= n_val <= 8:
+                        n = n_val
+                    else:
+                        n = 8
+                except ValueError:
+                    n = 8
+            align = "l"
+        else:
+            kind = "normal"
+            align = "l"
+            text = core
 
-    # fe| → текст добавляется в конце
-    if cmd.startswith("fe"):
-        suffix = parts[1] if len(parts) > 1 else ""
-        return file_text + suffix
-
-    # fb|...|e|... (и середина, и конец)
-    if cmd.startswith("fb") and "e" in parts:
-        prefix = parts[1] if len(parts) > 1 else ""
-        suffix = parts[3] if len(parts) > 3 else ""
-        return prefix + file_text + suffix
-
-    # cf| → выравнивание по центру
-    if cmd.startswith("cf"):
-        return file_text.center(8)
-
-    # rfe| → справа + суффикс
-    if cmd.startswith("rfe"):
-        suffix = parts[1] if len(parts) > 1 else ""
-        return (file_text + suffix).rjust(8)
-
-    # f| → просто содержимое файла
-    if cmd.startswith("f"):
-        return file_text
-
-    # По умолчанию вернём как есть
-    return file_text
+    return {"kind": kind, "align": align, "n": n, "text": text, "delays": delay_list}
 
 
-def parse_ps_line(line: str):
-    """
-    Основной парсер строк PS
-    """
-    line = line.strip()
+def ps_frames(entry):
+    kind = entry["kind"]
+    align = entry["align"]
+    n = entry["n"]
+    text = entry["text"]
+    delays = entry["delays"]
 
-    # Если строка пустая
-    if not line:
-        return ""
+    delay_count = len(delays)
+    idx = 0
 
-    # Если строка не содержит командных символов | → обычный текст
-    if "|" not in line and not line.startswith(("s", "lt", "tf", "sf", "f", "cf", "fb", "fe", "rfe", "lsf")):
-        return line
+    if kind == "normal":
+        yield align_ps(text, align), delays[0]
 
-    # Если строка начинается с | → это обычный текст
-    if line.startswith("|"):
-        return line[1:]
+    elif kind == "scroll":
+        if len(text) <= 8:
+            yield align_ps(text, "l"), delays[0]
+        else:
+            for i in range(0, len(text) - 7):
+                d = delays[idx % delay_count]
+                idx += 1
+                yield text[i:i+8], d
 
-    parts = line.split("|")
+    elif kind == "transfer":
+        if n <= 0:
+            n = 8
+        for i in range(0, len(text), n):
+            seg = text[i:i+n]
+            d = delays[idx % delay_count]
+            idx += 1
+            yield align_ps(seg, align), d
 
-    # SCROLL (s|TEXT|SPEED)
-    if parts[0] == "s":
-        text = parts[1] if len(parts) > 1 else ""
-        try:
-            speed = int(parts[2]) if len(parts) > 2 else 3
-        except ValueError:
-            speed = 3
-        return scroll_ps(text, speed)
+    elif kind == "scroll_lr":  # ls-анимация
+        t = text
+        if len(t) <= 8:
+            yield align_ps(t, "l"), delays[0]
+        else:
+            base = t[:8]
+            yield base, delays[0]
+            idx = 1
+            for k in range(len(t)-1, -1, -1):
+                sym = t[k]
+                base = sym + base[:-1]
+                d = delays[idx % delay_count]
+                idx += 1
+                yield base, d
 
-    # LINE SPLIT (ltN|TEXT)
-    if parts[0].startswith("lt"):
-        try:
-            width = int(parts[0][2:])
-        except ValueError:
-            width = 8
-        text = parts[1] if len(parts) > 1 else ""
-        return line_split_ps(text, width)
+    elif kind == "scroll_cycle":  # ss-анимация (циклический скролл)
+        t = text
+        if len(t) <= 8:
+            yield align_ps(t, "l"), delays[0]
+        else:
+            idx = 0
+            length = len(t)
+            while True:
+                window = ""
+                for j in range(8):
+                    window += t[(idx + j) % length]
+                d = delays[idx % delay_count]
+                idx += 1
+                yield window, d
 
-    # FILE MODULES (f|, fb|, fe|, cf|, rfe|, lsf| и т.д.)
-    if parts[0].startswith(("f", "cf", "fb", "fe", "rfe", "sf", "tf", "lsf", "lt")):
-        return handle_file_module(parts)
 
-    # Всё остальное → просто текст
-    return line
+def load_ps_lines(filename):
+    if not os.path.exists(filename):
+        return []
+    with open(filename, "r", encoding="utf-8") as fh:
+        return [ln.rstrip("\n") for ln in fh]
