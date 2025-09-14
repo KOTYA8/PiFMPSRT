@@ -1,156 +1,135 @@
-import os
-from .utils import align_ps
+import re
+from itertools import cycle
+from file_watcher import FileWatcher
 
-def parse_ps_line(raw_line: str):
-    line = raw_line.rstrip("\n")
-    if not line or line.lstrip().startswith("#"):
+file_watcher = FileWatcher("file.txt")
+
+def align_ps(text, align="l"):
+    if len(text) >= 8:
+        return text[:8]
+    pad = 8 - len(text)
+    if align == "c":
+        left = pad // 2
+        right = pad - left
+        return " " * left + text + " " * right
+    elif align == "r":
+        return " " * pad + text
+    else:
+        return text + " " * pad
+
+def parse_ps_line(line):
+    line = line.strip()
+    if not line or line.startswith("#"):
         return None
 
-    # Разбор задержек (можно несколько через '/')
-    delay_list = [5]
-    core = line
-    pos_last = line.rfind("|")
-    if pos_last != -1:
-        tail = line[pos_last + 1:]
-        if "/" in tail:
-            try:
-                delay_list = [int(x) for x in tail.strip().split("/") if x]
-                core = line[:pos_last]
-            except ValueError:
-                core = line
-        else:
-            try:
-                delay_list = [int(tail.strip())]
-                core = line[:pos_last]
-            except ValueError:
-                core = line
+    m = re.match(r"([lcr]?)([a-z0-9]+)?f?b?(?:\|([^|]*))?(?:e\|([^|]*))?\|(.+)?", line)
+    if not m:
+        return None
 
-    # Разбор модификаторов (режим, выравнивание, transfer длина)
-    mode_token = ""
-    text = core
-    first_bar = core.find("|")
-    if first_bar != -1:
-        mode_token = core[:first_bar]
-        text = core[first_bar + 1:]
+    align, mode, prefix, suffix, rest = m.groups()
+    align = align or "l"
+    mode = mode or "normal"
 
-    kind = "normal"
-    align = "l"
-    n = 8
-    mt = mode_token
+    # ищем секунды и expire
+    sec_match = re.search(r"\|([\d/]+)(?:\\(\d+))?$", line)
+    delays, expire_time = [5], None
+    if sec_match:
+        sec_str, expire_str = sec_match.groups()
+        if sec_str:
+            delays = [int(x) for x in sec_str.split("/")]
+        if expire_str:
+            expire_time = int(expire_str)
 
-    if mt == "s":
+    # проверка на file
+    if "f" in mode:
+        kind = "file"
+    elif mode == "s":
         kind = "scroll"
-    elif mt == "ls":
-        kind = "scroll_lr"
-        align = "l"
-    elif mt == "ss":
+    elif mode == "ss":
         kind = "scroll_cycle"
-        align = "l"
+    elif mode == "t":
+        kind = "transfer"
+    elif mode.startswith("t") and mode[1:].isdigit():
+        kind = "transfer_cut"
+    elif mode == "ls":
+        kind = "scroll_lr"
     else:
-        if mt.startswith(("l", "c", "r")):
-            align = mt[0]
-            rest = mt[1:]
-            if rest == "" or rest is None:
-                kind = "normal"
-            elif rest.startswith("t"):
-                kind = "transfer"
-                if len(rest) == 1:
-                    n = 8
-                else:
-                    try:
-                        n_val = int(rest[1:])
-                        if 1 <= n_val <= 8:
-                            n = n_val
-                        else:
-                            n = 8
-                    except ValueError:
-                        n = 8
-        elif mt.startswith("t"):
-            kind = "transfer"
-            if len(mt) == 1:
-                n = 8
-            else:
-                try:
-                    n_val = int(mt[1:])
-                    if 1 <= n_val <= 8:
-                        n = n_val
-                    else:
-                        n = 8
-                except ValueError:
-                    n = 8
-            align = "l"
-        else:
-            kind = "normal"
-            align = "l"
-            text = core
+        kind = "normal"
 
-    return {"kind": kind, "align": align, "n": n, "text": text, "delays": delay_list}
-
+    return {
+        "kind": kind,
+        "align": align,
+        "delays": delays,
+        "expire_time": expire_time,
+        "prefix": prefix or "",
+        "suffix": suffix or "",
+        "text": rest or "",
+    }
 
 def ps_frames(entry):
     kind = entry["kind"]
-    align = entry["align"]
-    n = entry["n"]
     text = entry["text"]
     delays = entry["delays"]
-
     delay_count = len(delays)
-    idx = 0
+    align = entry["align"]
+    prefix = entry["prefix"]
+    suffix = entry["suffix"]
+    expire_time = entry["expire_time"]
 
-    if kind == "normal":
+    if kind == "file":
+        file_text = file_watcher.read()
+        if not file_text or (expire_time and not file_watcher.changed_recently(expire_time)):
+            return
+        final_text = prefix + file_text + suffix
+        yield align_ps(final_text, align), delays[0]
+
+    elif kind == "normal":
         yield align_ps(text, align), delays[0]
 
     elif kind == "scroll":
         if len(text) <= 8:
-            yield align_ps(text, "l"), delays[0]
+            yield align_ps(text, align), delays[0]
         else:
-            for i in range(0, len(text) - 7):
-                d = delays[idx % delay_count]
-                idx += 1
-                yield text[i:i+8], d
+            for i in range(len(text) - 7):
+                yield text[i:i+8], delays[i % delay_count]
+
+    elif kind == "scroll_cycle":
+        idx = 0
+        length = len(text)
+        while True:
+            window = "".join(text[(idx + j) % length] for j in range(8))
+            yield window, delays[idx % delay_count]
+            idx += 1
 
     elif kind == "transfer":
-        if n <= 0:
-            n = 8
-        for i in range(0, len(text), n):
-            seg = text[i:i+n]
-            d = delays[idx % delay_count]
-            idx += 1
-            yield align_ps(seg, align), d
-
-    elif kind == "scroll_lr":  # ls-анимация
-        t = text
-        if len(t) <= 8:
-            yield align_ps(t, "l"), delays[0]
+        if len(text) <= 8:
+            yield align_ps(text, align), delays[0]
         else:
-            base = t[:8]
+            step = 8
+            parts = [text[i:i+step] for i in range(0, len(text), step)]
+            for i, p in enumerate(parts):
+                yield align_ps(p, align), delays[i % delay_count]
+
+    elif kind == "transfer_cut":
+        cut = int(entry["kind"][1:])
+        if len(text) <= 8:
+            yield align_ps(text, align), delays[0]
+        else:
+            step = 8 - (cut // 2)
+            parts = [text[i:i+step] for i in range(0, len(text), step)]
+            for i, p in enumerate(parts):
+                yield align_ps(p, align), delays[len(p) % delay_count]
+
+    elif kind == "scroll_lr":
+        if len(text) <= 8:
+            yield align_ps(text, "l"), delays[0]
+        else:
+            base = text[:8]
             yield base, delays[0]
             idx = 1
-            for k in range(len(t)-1, -1, -1):
-                sym = t[k]
+            for k in range(len(text) - 1, -1, -1):
+                sym = text[k]
                 base = sym + base[:-1]
                 d = delays[idx % delay_count]
                 idx += 1
                 yield base, d
-
-    elif kind == "scroll_cycle":  # ss-анимация (циклический скролл)
-        t = text
-        if len(t) <= 8:
-            yield align_ps(t, "l"), delays[0]
-        else:
-            idx = 0
-            length = len(t)
-            while True:
-                window = ""
-                for j in range(8):
-                    window += t[(idx + j) % length]
-                d = delays[idx % delay_count]
-                idx += 1
-                yield window, d
-
-
-def load_ps_lines(filename):
-    if not os.path.exists(filename):
-        return []
-    with open(filename, "r", encoding="utf-8") as fh:
-        return [ln.rstrip("\n") for ln in fh]
