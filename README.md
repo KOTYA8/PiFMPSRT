@@ -1,7 +1,7 @@
 # PiFmPSRT
 Script for PiFmRds.  
-You can create the amount of PS and RT, and so that it changes through the seconds that you indicated, as well as use the modes and change the position of the text.  
-Management via rds_ctl.  
+You can create the amount of **PS** and **RT**, and so that it changes through the seconds that you indicated, as well as use the modes and change the position of the text.  
+Management via **rds_ctl**.  
 
 # Installation
 **1.** In the terminal we write -> `git clone https://github.com/KOTYA8/PiFmPSRT/`  
