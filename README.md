@@ -4,7 +4,7 @@ You can create the amount of PS and RT, and so that it changes through the secon
 Management via rds_ctl.  
 
 # Installation
-**1.** In the terminal we write -> `git clone https://github.com/KOTYA8/PiFmPSRT/ ` 
+**1.** In the terminal we write -> `git clone https://github.com/KOTYA8/PiFmPSRT/`  
 **2.** Next, select the version a version of PiFmPSRT (psrtv(ver)) and drag to the PiFmRds Directory (psrt.py and pifmpsrt folder).  
 **3.** Create in the directory PiFmRds -> `mkfifo rds_ctl`  
 **4.** In one console we run -> `sudo ./pi_fm_rds -ctl rds_ctl`  
