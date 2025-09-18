@@ -16,15 +16,15 @@ NEW: After the PiFmRds -> pifmpsrt -> Change ps.txt and rt.txt directory.
 
 # Registers for V4,5
 # **PS Mode**  
-text - Normal mode -> `text____`  
 Gaps and any other symbols are also taken into account, including |.  
 r||text -> `___|text`  
+
 If you put the gaps, the text will move. It works both in PS and RT.  
 ⠀text -> `_text ___`  
 ⠀⠀text -> `__text__`  
 
 **Standart mode:**  
-text - normal mode, starting on the left, switching for 5 seconds  
+text - normal mode, starting on the left, switching for 5 seconds -> `text____`  
 text|2 - Switching in 2 seconds  
 l|text - Indication of the position on the left -> `text____`  
 c|text - Indication of the position on the centre -> `__text__`  
@@ -53,6 +53,7 @@ ct6|hellotext - Transfer of text in the centre of only 6 characters -> `_hellot_
 
 # **RT Mode** 
 text - Normal mode -> `text____(...)`  
+
 l|text - Indication of the position on the left -> `text____(...)`  
 c|text - Indication of the position on the centre -> `__text__`  
 r|text - Indication of the position on the right -> `(...)____text` 
