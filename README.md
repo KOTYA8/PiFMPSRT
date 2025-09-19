@@ -11,7 +11,7 @@ Management via **rds_ctl**.
 and in another console we run:  
 OLD: -> `python3 psrtv(ver).py `  
 NEW: -> `python3 psrt.py`  
-**5.** After the PiFmRds or PiFMX -> Change ps.txt and rt.txt directory. Without closing the script, you can change PS and RT by saving a text file.  
+**5.** After the PiFmRds or PiFMX -> `Change ps.txt and rt.txt directory`. Without closing the script, you can change PS and RT by saving a text file.  
 NEW: After the PiFmRds or PiFMX -> pifmpsrt -> `Change ps.txt and rt.txt directory`.  
 
 # Registers for V4,5
