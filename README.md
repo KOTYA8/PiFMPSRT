@@ -56,7 +56,7 @@ l|text - Indication of the position on the left -> `text____(...)`
 c|text - Indication of the position on the centre -> `__text__`  
 r|text - Indication of the position on the right -> `(...)____text` 
 
-# Versions
+# Changelog
 All previous versions are available in the repository: [PiFMPSRT_VER](https://github.com/KOTYA8/PiFMPSRT_VER) 
 
 ### **Currently**  
