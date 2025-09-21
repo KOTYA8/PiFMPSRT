@@ -59,5 +59,5 @@ r|text - Indication of the position on the right -> `(...)____text`
 # Versions
 All previous versions are available in the repository: [PiFMPSRT_VER](https://github.com/KOTYA8/PiFMPSRT_VER) 
 
-**Currently**  
+### **Currently**  
 * V5 - The name main.py on psrt.py. Automatic definition has been added when the ps.txt and rt.txt file is saved. Added support for seconds for transfer and scroll (s/s). Added position support for RT (l, c, r). Support for the readings of 1.2.3.5.7 characters are added.  
