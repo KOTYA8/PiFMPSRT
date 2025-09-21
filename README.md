@@ -12,7 +12,7 @@ and in another console we run: `python3 psrt.py`
 **5.** After the PiFmRds or PiFMX -> pifmpsrt -> `Change ps.txt and rt.txt directory`. Without closing the script, you can change PS and RT by saving a text file.  
 
 # Registers
-### **PS Mode**  
+### **GLOBAL Mode**  
 Gaps and any other symbols are also taken into account, including |.  
 r||text -> `___|text`  
 
@@ -20,6 +20,7 @@ If you put the gaps, the text will move. It works both in PS and RT.
 ⠀text -> `_text ___`  
 ⠀⠀text -> `__text__`  
 
+### **PS Mode** 
 **Standart mode:**  
 text - normal mode, starting on the left, switching for 5 seconds -> `text____`  
 text|2 - Switching in 2 seconds  
