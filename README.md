@@ -12,7 +12,7 @@ and in another console we run: `python3 psrt.py`
 **5.** After the PiFmRds or PiFMX -> pifmpsrt -> `Change ps.txt and rt.txt directory`. Without closing the script, you can change PS and RT by saving a text file.  
 
 # Registers
-## **PS Mode**  
+### **PS Mode**  
 Gaps and any other symbols are also taken into account, including |.  
 r||text -> `___|text`  
 
@@ -48,7 +48,7 @@ ct|text - Transfer of text on the centre -> `hellotex [or] ___ t ____`
 rt|text - Transfer of text on the right -> `hellotex [or] _______t`  
 ct6|hellotext - Transfer of text in the centre of only 6 characters -> `_hellot_ [or] __ext___`  
 
-## **RT Mode** 
+### **RT Mode** 
 text - Normal mode -> `text____(...)`  
 
 l|text - Indication of the position on the left -> `text____(...)`  
