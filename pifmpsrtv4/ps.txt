@@ -1,2 +1,0 @@
-RADIOPI
-s|helloraspberrypy
