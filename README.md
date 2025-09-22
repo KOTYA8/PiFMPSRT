@@ -9,7 +9,16 @@ Management via **rds_ctl**.
 **3.** Create in the directory PiFmRds or PiFMX -> `mkfifo rds_ctl`  
 **4.** In one console we run -> `sudo ./pi_fm_rds -ctl rds_ctl` or `sudo ./pi_fm_x -ctl rds_ctl`  
 and in another console we run: `python3 psrt.py`  
-**5.** After the PiFmRds or PiFMX -> pifmpsrt -> `Change ps.txt and rt.txt directory`. Without closing the script, you can change PS and RT by saving a text file.  
+**5.** After the PiFmRds or PiFMX -> pifmpsrt -> `Change ps.txt and rt.txt directory`. Without closing the script, you can change PS and RT by saving a text file. 
+
+# Future Functions
+
+* **Scroll (modes)** - ❌ not realized  
+* **Scroll (RT)** - ❌ not realized  
+* **Transfer along with (-)** - ❌ not realized  
+* **Source (file)** - ❌ not realized  
+* **Clock** - ❌ not realized  
+* **Date** - ❌ not realized  
 
 # Registers
 ### **GLOBAL Mode**  
