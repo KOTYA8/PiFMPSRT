@@ -1,7 +1,7 @@
 # PiFMPSRT
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠀⠀⠀⠀Script for [PiFmRds](https://github.com/ChristopheJacquet/PiFmRds) and [PiFMX](https://github.com/KOTYA8/PiFMX).  
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ You can create the amount of **PS** and **RT**,  
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀and so that it changes through the **seconds** that you indicated,  
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀and so that it changes through the **seconds** that you indicated,  
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀as well as use the **modes** and change the **position** of the text.  
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Management via **rds_ctl**.  
 
