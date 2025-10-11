@@ -7,7 +7,7 @@ Script for [PiFmRds](https://github.com/ChristopheJacquet/PiFmRds) and [PiFMX](h
 
 # Installation
 **1.** In the terminal we write -> `git clone https://github.com/KOTYA8/PiFMPSRT/`  
-**2.** Next, transfer the `pifmpsrt` and `psrt.py` to the PiFmRds or PiFMX Directory.  
+**2.** Next, transfer the `pifmpsrt` and `psrt.py` to the PiFmRds or PiFMX directory.  
 **3.** Create in the directory PiFmRds or PiFMX -> `mkfifo rds_ctl`  
 **4.** In one console we run -> `sudo ./pi_fm_rds -ctl rds_ctl` or `sudo ./pi_fm_x -ctl rds_ctl`  
 and in another console we run: `python3 psrt.py`  
